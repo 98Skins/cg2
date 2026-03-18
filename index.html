@@ -1,32 +1,15 @@
-<!DOCTYPE html>
+\<!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>CS2 USP-S Showcase</title>
+    <title>CS2 USP-S DEBUG</title>
     <style>
-        body { margin: 0; background: #050505; overflow: hidden; font-family: 'Arial Black', sans-serif; }
-        #viewer { width: 100vw; height: 100vh; }
-        .ui {
-            position: absolute; top: 40px; left: 40px;
-            color: white; border-left: 6px solid #ff9f43;
-            padding-left: 20px; pointer-events: none;
-            text-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
-        .controls {
-            position: absolute; bottom: 20px; width: 100%; text-align: center;
-            color: rgba(255,255,255,0.4); font-size: 12px; text-transform: uppercase;
-        }
+        body { margin: 0; background: #111; overflow: hidden; color: white; font-family: sans-serif; }
+        #info { position: absolute; top: 10px; width: 100%; text-align: center; z-index: 100; pointer-events: none; }
     </style>
 </head>
 <body>
-
-    <div class="ui">
-        <h1 style="margin:0; font-size: 32px;">USP-S | TACTICAL</h1>
-        <p style="margin:5px 0; letter-spacing: 2px;">COUNTER-STRIKE 2 ASSET VIEW</p>
-    </div>
-
-    <div class="controls">Myszka: Obracaj i Przybliżaj</div>
-    <div id="viewer"></div>
+    <div id="info">Ładowanie USP-S... (Sprawdź F12 jeśli nic nie widzisz)</div>
 
     <script type="importmap">
         {
@@ -41,52 +24,58 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-        import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 
         const scene = new THREE.Scene();
-        
-        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.01, 100);
-        camera.position.set(0.4, 0.1, 0.6);
+        scene.background = new THREE.Color(0x111111);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
+        camera.position.set(0, 0, 5); // Odsunięcie kamery, żeby na pewno widzieć model
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.2;
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-        document.getElementById('viewer').appendChild(renderer.domElement);
+        document.body.appendChild(renderer.domElement);
 
-        // Oświetlenie studyjne
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1);
-        scene.add(ambientLight);
-
-        const topLight = new THREE.DirectionalLight(0xffffff, 2);
-        topLight.position.set(1, 2, 1);
-        scene.add(topLight);
-
-        // Niebieska kontra (styl CS2)
-        const blueLight = new THREE.PointLight(0x00ffff, 5);
-        blueLight.position.set(-2, 1, 0);
-        scene.add(blueLight);
+        // MOCNE ŚWIATŁO Z KAŻDEJ STRONY (żeby nie było ciemno)
+        const ambient = new THREE.AmbientLight(0xffffff, 2);
+        scene.add(ambient);
+        const sun = new THREE.DirectionalLight(0xffffff, 3);
+        sun.position.set(5, 5, 5);
+        scene.add(sun);
 
         const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.autoRotate = true; // Efekt inspekcji
-        controls.autoRotateSpeed = 2.0;
 
         const loader = new GLTFLoader();
         
-        // Ładowanie modelu z Twojego folderu
+        // SPRÓBUJ ZAŁADOWAĆ MODEL
         loader.load('./scene.gltf', (gltf) => {
             const model = gltf.scene;
             
-            // Centrowanie modelu w osiach
+            // AUTOMATYCZNE SKALOWANIE (naprawia problem "za mały/za duży")
             const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3()).length();
             const center = box.getCenter(new THREE.Vector3());
-            model.position.sub(center);
+
+            model.position.x += (model.position.x - center.x);
+            model.position.y += (model.position.y - center.y);
+            model.position.z += (model.position.z - center.z);
             
+            // Ustawia kamerę idealnie przed modelem
+            camera.position.copy(center);
+            camera.position.x += size / 2.0;
+            camera.position.y += size / 5.0;
+            camera.position.z += size / 2.0;
+            camera.lookAt(center);
+
             scene.add(model);
-        }, undefined, (error) => {
-            console.error("Błąd ładowania! Sprawdź czy pliki są w tym samym folderze na GitHubie.", error);
+            document.getElementById('info').innerHTML = "USP-S ZAŁADOWANY! Obracaj myszką.";
+            console.log("Model loaded successfully");
+        }, 
+        (xhr) => {
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        },
+        (error) => {
+            console.error("BŁĄD:", error);
+            document.getElementById('info').innerHTML = "BŁĄD ŁADOWANIA! Sprawdź czy plik nazywa się scene.gltf";
         });
 
         function animate() {
@@ -95,12 +84,6 @@
             renderer.render(scene, camera);
         }
         animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
     </script>
 </body>
 </html>

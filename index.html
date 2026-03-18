@@ -2,31 +2,31 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>CS2 Tactical Map 3D</title>
+    <title>CS2 USP-S Showcase</title>
     <style>
-        body { margin: 0; background: #0b0e11; overflow: hidden; font-family: sans-serif; }
-        #canvas-container { width: 100vw; height: 100vh; }
-        .ui-panel {
-            position: absolute; top: 20px; left: 20px;
-            background: rgba(0, 0, 0, 0.8); color: white;
-            padding: 20px; border-left: 4px solid #ff9f43;
-            pointer-events: none; border-radius: 0 8px 8px 0;
+        body { margin: 0; background: #050505; overflow: hidden; font-family: 'Arial Black', sans-serif; }
+        #viewer { width: 100vw; height: 100vh; }
+        .ui {
+            position: absolute; top: 40px; left: 40px;
+            color: white; border-left: 6px solid #ff9f43;
+            padding-left: 20px; pointer-events: none;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
-        .controls-hint {
-            position: absolute; bottom: 20px; width: 100%;
-            text-align: center; color: rgba(255,255,255,0.5); font-size: 12px;
+        .controls {
+            position: absolute; bottom: 20px; width: 100%; text-align: center;
+            color: rgba(255,255,255,0.4); font-size: 12px; text-transform: uppercase;
         }
     </style>
 </head>
 <body>
 
-    <div class="ui-panel">
-        <h2 style="margin:0">OPERACJA: GITHUB</h2>
-        <p style="margin:5px 0; font-size: 14px; opacity: 0.7;">Model: FPS MAP 0088</p>
+    <div class="ui">
+        <h1 style="margin:0; font-size: 32px;">USP-S | TACTICAL</h1>
+        <p style="margin:5px 0; letter-spacing: 2px;">COUNTER-STRIKE 2 ASSET VIEW</p>
     </div>
 
-    <div class="controls-hint">LPM: Obracanie | PPM: Przesuwanie | Scroll: Przybliżanie</div>
-    <div id="canvas-container"></div>
+    <div class="controls">Myszka: Obracaj i Przybliżaj</div>
+    <div id="viewer"></div>
 
     <script type="importmap">
         {
@@ -41,45 +41,52 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050505);
-
-        // Kamera
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(20, 20, 20);
+        
+        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.01, 100);
+        camera.position.set(0.4, 0.1, 0.6);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.2;
-        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        document.getElementById('viewer').appendChild(renderer.domElement);
 
-        // Oświetlenie - kluczowe dla wyglądu modelu
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        // Oświetlenie studyjne
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1);
         scene.add(ambientLight);
 
-        const sunLight = new THREE.DirectionalLight(0xffffff, 2);
-        sunLight.position.set(10, 20, 10);
-        scene.add(sunLight);
+        const topLight = new THREE.DirectionalLight(0xffffff, 2);
+        topLight.position.set(1, 2, 1);
+        scene.add(topLight);
 
-        // Kontrole myszy
+        // Niebieska kontra (styl CS2)
+        const blueLight = new THREE.PointLight(0x00ffff, 5);
+        blueLight.position.set(-2, 1, 0);
+        scene.add(blueLight);
+
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
+        controls.autoRotate = true; // Efekt inspekcji
+        controls.autoRotateSpeed = 2.0;
 
-        // Ładowanie modelu (Zmień 'scene.gltf' na nazwę swojego pliku)
         const loader = new GLTFLoader();
-        loader.load('scene.gltf', (gltf) => {
-            scene.add(gltf.scene);
+        
+        // Ładowanie modelu z Twojego folderu
+        loader.load('./scene.gltf', (gltf) => {
+            const model = gltf.scene;
             
-            // Centrowanie modelu
-            const box = new THREE.Box3().setFromObject(gltf.scene);
+            // Centrowanie modelu w osiach
+            const box = new THREE.Box3().setFromObject(model);
             const center = box.getCenter(new THREE.Vector3());
-            gltf.scene.position.sub(center);
+            model.position.sub(center);
             
-            console.log("Model załadowany pomyślnie!");
+            scene.add(model);
         }, undefined, (error) => {
-            console.error("Błąd ładowania modelu. Upewnij się, że pliki są na serwerze/GitHubie.", error);
+            console.error("Błąd ładowania! Sprawdź czy pliki są w tym samym folderze na GitHubie.", error);
         });
 
         function animate() {
@@ -87,14 +94,13 @@
             controls.update();
             renderer.render(scene, camera);
         }
+        animate();
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
-
-        animate();
     </script>
 </body>
 </html>
